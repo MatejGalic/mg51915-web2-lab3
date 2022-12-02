@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 
-export const blockSize = 20;
+export const blockSize = 40;
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -22,7 +22,6 @@ export class AppComponent implements AfterViewInit {
   ngAfterViewInit(): void {
     this.ctx = this.canvas.nativeElement.getContext('2d');
     this.initRects();
-    this.drawScore();
     this.startGame();
   }
 
@@ -33,7 +32,7 @@ export class AppComponent implements AfterViewInit {
     for (let i = 0; i < numOfRects; i++) {
       let x = Math.floor(Math.random() * (this.height - blockSize));
       let y = Math.floor(Math.random() * (this.width - blockSize));
-      let speed = Math.floor(Math.random() * 5 + 1);
+      let speed = Math.floor(Math.random() * 2 + 1);
       let sqr = new Square(x, y, speed, this.ctx);
       this.rects.push(sqr);
     }
@@ -52,6 +51,13 @@ export class AppComponent implements AfterViewInit {
     );
   }
 
+  setStylesForSquares() {
+    //squares style
+    this.ctx.shadowBlur = 1;
+    this.ctx.shadowColor = 'black';
+    this.ctx.fillStyle = 'red';
+  }
+
   targetRectangle(e: any) {
     let domRect = this.canvas.nativeElement.getBoundingClientRect();
 
@@ -59,7 +65,7 @@ export class AppComponent implements AfterViewInit {
     let my = e.clientY - domRect.top;
 
     let toRemove: Square[] = [];
-    let missed: boolean = false;
+    let missed: boolean = true;
 
     this.rects.forEach((rect) => {
       if (
@@ -71,17 +77,14 @@ export class AppComponent implements AfterViewInit {
         //to remove square
         toRemove.push(rect);
         this.currentCount += 1;
-        alert('clicked in rect');
-      } else {
-        //missed
-        missed = true;
+        missed = false;
       }
     });
 
     if (missed) {
-      //speed up
+      //speed up on miss
       this.rects.forEach((rect) => {
-        rect.speed += 1;
+        rect.speed += 0.35;
       });
     } else {
       //remove squares from array
@@ -95,23 +98,24 @@ export class AppComponent implements AfterViewInit {
   }
 
   startGame() {
-    this.drawSquares();
+    // this.drawSquares();
+    window.requestAnimationFrame(this.nextFrame.bind(this));
   }
 
-  drawSquares() {
-    //squares style
-    this.ctx.shadowBlur = 1;
-    this.ctx.shadowColor = 'black';
-    this.ctx.fillStyle = 'red';
-
-    this.rects.forEach((element) => {
-      element.draw();
+  nextFrame() {
+    this.ctx.clearRect(0, 0, this.width, this.height);
+    this.setStylesForSquares();
+    this.rects.forEach((rect) => {
+      //draw squares and update position
+      rect.update();
     });
+    this.drawScore();
+    window.requestAnimationFrame(this.nextFrame.bind(this));
   }
 }
 export class Square {
-  private dx = 1;
-  private dy = 1;
+  private dx = Math.floor(Math.random() * 2) == 0 ? -1 : 1;
+  private dy = Math.floor(Math.random() * 2) == 0 ? -1 : 1;
 
   constructor(
     public x: number,
@@ -127,8 +131,24 @@ export class Square {
   update() {
     this.draw();
     //handle orientation
+    //change speed on bounce
+    if (
+      (this.x >= this.ctx.canvas.width - blockSize && this.dx == 1) ||
+      (this.x <= 0 && this.dx == -1)
+    ) {
+      this.dx *= -1;
+      this.speed = Math.max(this.speed + Math.random() * 2 - 1, 0.5);
+    }
+    if (
+      (this.y >= this.ctx.canvas.height - blockSize && this.dy == 1) ||
+      (this.y <= 0 && this.dy == -1)
+    ) {
+      this.dy *= -1;
+      this.speed = Math.max(this.speed + Math.random() * 2 - 1, 0.5);
+    }
 
+    //move
     this.x += this.speed * this.dx;
-    this.x += this.speed * this.dy;
+    this.y += this.speed * this.dy;
   }
 }
