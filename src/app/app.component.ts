@@ -11,6 +11,8 @@ export class AppComponent implements AfterViewInit {
   canvas: ElementRef<HTMLCanvasElement>;
   height = 500;
   width = 500;
+  startCount: number;
+  currentCount: number = 0;
 
   private ctx: CanvasRenderingContext2D;
   private rects: Square[] = [];
@@ -18,20 +20,15 @@ export class AppComponent implements AfterViewInit {
   constructor() {}
 
   ngAfterViewInit(): void {
-    this.setupContext();
+    this.ctx = this.canvas.nativeElement.getContext('2d');
     this.initRects();
+    this.drawScore();
     this.startGame();
   }
 
-  setupContext() {
-    this.ctx = this.canvas.nativeElement.getContext('2d');
-    this.ctx.shadowBlur = 1;
-    this.ctx.shadowColor = 'black';
-    this.ctx.fillStyle = 'red';
-  }
-
   initRects() {
-    let numOfRects = Math.floor(Math.random() * 10 + 7);
+    let numOfRects = Math.floor(Math.random() * 15 + 7);
+    this.startCount = numOfRects;
 
     for (let i = 0; i < numOfRects; i++) {
       let x = Math.floor(Math.random() * (this.height - blockSize));
@@ -43,6 +40,18 @@ export class AppComponent implements AfterViewInit {
     this.canvas.nativeElement.onmousedown = this.targetRectangle.bind(this);
   }
 
+  drawScore() {
+    //scoreboard style
+    this.ctx.fillStyle = 'black';
+    this.ctx.font = '16px Georgia';
+    this.ctx.textAlign = 'end';
+    this.ctx.fillText(
+      `${this.currentCount}/${this.startCount}`,
+      this.width - 5,
+      16
+    );
+  }
+
   targetRectangle(e: any) {
     let domRect = this.canvas.nativeElement.getBoundingClientRect();
 
@@ -50,6 +59,7 @@ export class AppComponent implements AfterViewInit {
     let my = e.clientY - domRect.top;
 
     let toRemove: Square[] = [];
+    let missed: boolean = false;
 
     this.rects.forEach((rect) => {
       if (
@@ -60,22 +70,40 @@ export class AppComponent implements AfterViewInit {
       ) {
         //to remove square
         toRemove.push(rect);
+        this.currentCount += 1;
         alert('clicked in rect');
       } else {
-        //speed up
+        //missed
+        missed = true;
       }
     });
 
-    //remove squares from array
-    toRemove.forEach((rect) => {
-      let index = this.rects.indexOf(rect, 0);
-      if (index > -1) {
-        this.rects.splice(index, 1);
-      }
-    });
+    if (missed) {
+      //speed up
+      this.rects.forEach((rect) => {
+        rect.speed += 1;
+      });
+    } else {
+      //remove squares from array
+      toRemove.forEach((rect) => {
+        let index = this.rects.indexOf(rect, 0);
+        if (index > -1) {
+          this.rects.splice(index, 1);
+        }
+      });
+    }
   }
 
   startGame() {
+    this.drawSquares();
+  }
+
+  drawSquares() {
+    //squares style
+    this.ctx.shadowBlur = 1;
+    this.ctx.shadowColor = 'black';
+    this.ctx.fillStyle = 'red';
+
     this.rects.forEach((element) => {
       element.draw();
     });
